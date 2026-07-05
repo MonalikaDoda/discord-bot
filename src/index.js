@@ -13,7 +13,6 @@ if (!DISCORD_PUBLIC_KEY) {
 }
 
 const app = express();
-app.use(express.json());
 
 async function connectToMongoDB() {
 	const mongoUrl = process.env.MONGODB_URL;
