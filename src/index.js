@@ -68,6 +68,8 @@ app.post('/interactions', verifyKeyMiddleware(DISCORD_PUBLIC_KEY), async (req, r
 			type: 5,
 		});
 
+		await new Promise((resolve) => setTimeout(resolve, 5000));
+
 		try {
 			await Interaction.create({
 				interactionId: interaction.id,
