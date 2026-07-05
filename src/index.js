@@ -14,6 +14,27 @@ if (!DISCORD_PUBLIC_KEY) {
 
 const app = express();
 
+async function sendSlackMessage(message) {
+	const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+
+	if (!webhookUrl) {
+		console.warn('SLACK_WEBHOOK_URL is not set.');
+		return;
+	}
+
+	try {
+		await fetch(webhookUrl, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ text: message }),
+		});
+	} catch (error) {
+		console.error('Failed to send Slack message:', error.message);
+	}
+}
+
 async function connectToMongoDB() {
 	const mongoUrl = process.env.MONGODB_URL;
 
@@ -57,6 +78,12 @@ app.post('/interactions', verifyKeyMiddleware(DISCORD_PUBLIC_KEY), async (req, r
 				console.error('Failed to save interaction:', error.message);
 			}
 		}
+
+		const senderId = interaction.member?.user?.id || 'unknown';
+		const slackMessage = inputText
+			? `Slash command /${name} received from user ${senderId} with input: ${inputText}`
+			: `Slash command /${name} received from user ${senderId}`;
+		await sendSlackMessage(slackMessage);
 
 		return res.send({
 			type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,

@@ -13,7 +13,7 @@ const interactionSchema = new mongoose.Schema({
   },
   inputText: {
     type: String,
-    required: true,
+    required: false,
   },
   userId: {
     type: String,
