@@ -64,6 +64,10 @@ app.post('/interactions', verifyKeyMiddleware(DISCORD_PUBLIC_KEY), async (req, r
 		const options = interaction.data && interaction.data.options ? interaction.data.options : [];
 		const inputText = options.find((option) => option.name === 'text')?.value || '';
 
+		res.send({
+			type: 5,
+		});
+
 		try {
 			await Interaction.create({
 				interactionId: interaction.id,
@@ -85,12 +89,20 @@ app.post('/interactions', verifyKeyMiddleware(DISCORD_PUBLIC_KEY), async (req, r
 			: `Slash command /${name} received from user ${senderId}`;
 		await sendSlackMessage(slackMessage);
 
-		return res.send({
-			type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-			data: {
-				content: `You invoked /${name}`,
-			},
-		});
+		try {
+			await fetch(`https://discord.com/api/v10/webhooks/${process.env.DISCORD_APP_ID}/${interaction.token}/messages/@original`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					content: `You invoked /${name}`,
+				}),
+			});
+		} catch (error) {
+			console.error('Failed to send follow-up Discord message:', error.message);
+		}
+		return;
 	}
 
 	return res.status(400).send('Unsupported interaction type');
