@@ -5,6 +5,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { verifyKeyMiddleware, InteractionType, InteractionResponseType } = require('discord-interactions');
 const Interaction = require('./models/Interaction');
+const { summarizeAndTagReport } = require('./gemini');
 
 const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
 if (!DISCORD_PUBLIC_KEY) {
@@ -68,9 +69,20 @@ app.post('/interactions', verifyKeyMiddleware(DISCORD_PUBLIC_KEY), async (req, r
 			type: 5,
 		});
 
-		await new Promise((resolve) => setTimeout(resolve, 5000));
-
 		try {
+			let aiTag = null;
+			let aiSummary = null;
+			if (name === 'report') {
+				try {
+					const result = await summarizeAndTagReport(inputText || '');
+					aiTag = result.urgency || null;
+					aiSummary = result.summary || null;
+				} catch (e) {
+					aiTag = null;
+					aiSummary = null;
+				}
+			}
+
 			await Interaction.create({
 				interactionId: interaction.id,
 				commandName: name,
@@ -78,6 +90,8 @@ app.post('/interactions', verifyKeyMiddleware(DISCORD_PUBLIC_KEY), async (req, r
 				userId: interaction.member?.user?.id || '',
 				guildId: interaction.guild_id || '',
 				channelId: interaction.channel_id || '',
+				aiTag,
+				aiSummary,
 			});
 		} catch (error) {
 			if (error.code !== 11000) {
@@ -86,19 +100,37 @@ app.post('/interactions', verifyKeyMiddleware(DISCORD_PUBLIC_KEY), async (req, r
 		}
 
 		const senderId = interaction.member?.user?.id || 'unknown';
-		const slackMessage = inputText
+		let slackMessage = inputText
 			? `Slash command /${name} received from user ${senderId} with input: ${inputText}`
 			: `Slash command /${name} received from user ${senderId}`;
+		if (name === 'report') {
+			// add AI tag/summary if available on the saved document
+			const { aiTag, aiSummary } = await Interaction.findOne({ interactionId: interaction.id }) || {};
+			if (aiSummary) slackMessage += `\nAI summary: ${aiSummary}`;
+			if (aiTag) slackMessage += `\nAI urgency: ${aiTag}`;
+		}
 		await sendSlackMessage(slackMessage);
 
 		try {
+			let followUpContent;
+			if (name === 'report') {
+				const doc = await Interaction.findOne({ interactionId: interaction.id }) || {};
+				const tagPart = doc.aiTag ? ` (urgency: ${doc.aiTag})` : '';
+				const summaryPart = doc.aiSummary ? ` — ${doc.aiSummary}` : '';
+				followUpContent = `Got your report${tagPart}${summaryPart} — logged and forwarded to the team.`;
+			} else if (name === 'status') {
+				followUpContent = 'All systems normal — bot is up and logging.';
+			} else {
+				followUpContent = `You invoked /${name}`;
+			}
+
 			await fetch(`https://discord.com/api/v10/webhooks/${process.env.DISCORD_APP_ID}/${interaction.token}/messages/@original`, {
 				method: 'PATCH',
 				headers: {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					content: `You invoked /${name}`,
+					content: followUpContent,
 				}),
 			});
 		} catch (error) {

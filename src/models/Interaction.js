@@ -27,6 +27,14 @@ const interactionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  aiTag: {
+    type: String,
+    required: false,
+  },
+  aiSummary: {
+    type: String,
+    required: false,
+  },
   timestamp: {
     type: Date,
     default: Date.now,
