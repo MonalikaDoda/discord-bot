@@ -7,8 +7,10 @@ const mongoose = require('mongoose');
 const { verifyKeyMiddleware, InteractionType, InteractionResponseType } = require('discord-interactions');
 const Interaction = require('./models/Interaction');
 const CommandConfig = require('./models/CommandConfig');
+const logError = require('./utils/logError');
 const authRoutes = require('./routes/auth');
 const configRoutes = require('./routes/config');
+const errorsRoutes = require('./routes/errors');
 const { summarizeAndTagReport } = require('./gemini');
 
 const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
@@ -44,6 +46,7 @@ app.use(session({
 
 app.use(authRoutes);
 app.use(configRoutes);
+app.use(errorsRoutes);
 
 async function sendSlackMessage(message) {
 	const webhookUrl = process.env.SLACK_WEBHOOK_URL;
@@ -62,6 +65,7 @@ async function sendSlackMessage(message) {
 			body: JSON.stringify({ text: message }),
 		});
 	} catch (error) {
+		try { logError('slack', error && error.message ? error.message : String(error)); } catch (e) {}
 		console.error('Failed to send Slack message:', error.message);
 	}
 }
@@ -133,6 +137,7 @@ app.post('/interactions', verifyKeyMiddleware(DISCORD_PUBLIC_KEY), async (req, r
 			});
 		} catch (error) {
 			if (error.code !== 11000) {
+				try { logError('mongodb-interaction', error && error.message ? error.message : String(error)); } catch (e) {}
 				console.error('Failed to save interaction:', error.message);
 			}
 		}
@@ -172,6 +177,7 @@ app.post('/interactions', verifyKeyMiddleware(DISCORD_PUBLIC_KEY), async (req, r
 				}),
 			});
 		} catch (error) {
+			try { logError('discord-followup', error && error.message ? error.message : String(error)); } catch (e) {}
 			console.error('Failed to send follow-up Discord message:', error.message);
 		}
 		return;

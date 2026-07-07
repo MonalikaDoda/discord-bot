@@ -1,4 +1,5 @@
 require('dotenv').config();
+const logError = require('./utils/logError');
 
 
 async function summarizeAndTagReport(reportText, options = {}) {
@@ -70,8 +71,12 @@ const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-
 
     return { summary, urgency };
   } catch (error) {
-        console.error('Gemini call failed:', error.message);
-
+    try {
+      logError('gemini', error && error.message ? error.message : String(error));
+    } catch (e) {
+      // ignore
+    }
+    console.error('Gemini call failed:', error.message);
     try {
       const oneLine = reportText.split(/\r?\n/)[0].trim();
       const summary = oneLine.length > 200 ? oneLine.slice(0, 200) + '...' : oneLine || reportText;
