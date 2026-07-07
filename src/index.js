@@ -26,7 +26,6 @@ if (!SESSION_SECRET) {
 app.set('view engine', 'ejs');
 app.set('views', 'src/views');
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
 const isProduction = process.env.NODE_ENV === 'production';
 app.use(session({
   secret: SESSION_SECRET,
