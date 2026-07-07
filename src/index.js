@@ -56,13 +56,18 @@ async function sendSlackMessage(message) {
 	}
 
 	try {
-		await fetch(webhookUrl, {
+		const res = await fetch(webhookUrl, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
 			},
 			body: JSON.stringify({ text: message }),
 		});
+
+		if (!res.ok) {
+			const bodyText = await res.text().catch(() => '');
+			throw new Error(`Slack webhook failed ${res.status}: ${bodyText}`);
+		}
 	} catch (error) {
 		try { logError('slack', error && error.message ? error.message : String(error)); } catch (e) {}
 		console.error('Failed to send Slack message:', error.message);
