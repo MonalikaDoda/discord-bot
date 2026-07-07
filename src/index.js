@@ -43,6 +43,35 @@ app.use(session({
   },
 }));
 
+app.get('/', (req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discord Bot Dashboard</title>
+  <style>
+    .login-button {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.75rem 1.5rem;
+      background: #2563eb;
+      color: white;
+      text-decoration: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <h1>Discord Bot Dashboard</h1>
+  <p>This app handles Discord slash commands, logging, and admin dashboard management.</p>
+  <a class="login-button" href="/login">Go to login</a>
+</body>
+</html>`);
+});
+
 app.use(authRoutes);
 app.use(configRoutes);
 app.use(errorsRoutes);
