@@ -2,9 +2,11 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const express = require('express');
+const session = require('express-session');
 const mongoose = require('mongoose');
 const { verifyKeyMiddleware, InteractionType, InteractionResponseType } = require('discord-interactions');
 const Interaction = require('./models/Interaction');
+const authRoutes = require('./routes/auth');
 const { summarizeAndTagReport } = require('./gemini');
 
 const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
@@ -14,6 +16,28 @@ if (!DISCORD_PUBLIC_KEY) {
 }
 
 const app = express();
+
+const SESSION_SECRET = process.env.SESSION_SECRET || '';
+if (!SESSION_SECRET) {
+  console.error('Missing SESSION_SECRET in environment.');
+  process.exit(1);
+}
+
+app.set('view engine', 'ejs');
+app.set('views', 'src/views');
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(session({
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+  },
+}));
+
+app.use(authRoutes);
 
 async function sendSlackMessage(message) {
 	const webhookUrl = process.env.SLACK_WEBHOOK_URL;
