@@ -47,11 +47,6 @@ app.use(authRoutes);
 app.use(configRoutes);
 app.use(errorsRoutes);
 
-app.get('/test-error', async (req, res) => {
-  await logError('manual-test', 'This is a test error to verify logging works');
-  res.send('Logged a test error');
-});
-
 async function sendSlackMessage(message) {
 	const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 
