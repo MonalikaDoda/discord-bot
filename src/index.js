@@ -13,11 +13,6 @@ const configRoutes = require('./routes/config');
 const errorsRoutes = require('./routes/errors');
 const { summarizeAndTagReport } = require('./gemini');
 
-app.get('/test-error', async (req, res) => {
-  await logError('manual-test', 'This is a test error to verify logging works');
-  res.send('Logged a test error');
-});
-
 const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
 if (!DISCORD_PUBLIC_KEY) {
 	console.error('Missing DISCORD_PUBLIC_KEY in environment.');
@@ -51,6 +46,11 @@ app.use(session({
 app.use(authRoutes);
 app.use(configRoutes);
 app.use(errorsRoutes);
+
+app.get('/test-error', async (req, res) => {
+  await logError('manual-test', 'This is a test error to verify logging works');
+  res.send('Logged a test error');
+});
 
 async function sendSlackMessage(message) {
 	const webhookUrl = process.env.SLACK_WEBHOOK_URL;
