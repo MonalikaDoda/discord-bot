@@ -1,3 +1,6 @@
+require('dotenv').config();
+
+
 async function summarizeAndTagReport(reportText, options = {}) {
   const timeoutMs = options.timeoutMs || 8000;
 
@@ -13,16 +16,25 @@ async function summarizeAndTagReport(reportText, options = {}) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
 
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText', {
+const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${encodeURIComponent(apiKey)}`;    const body = {
+      contents: [
+        {
+          parts: [
+            { text: prompt }
+          ]
+        }
+      ],
+      generationConfig: {
+        maxOutputTokens: 256,
+      },
+    };
+
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GEMINI_API_KEY}`,
       },
-      body: JSON.stringify({
-        prompt: { text: prompt },
-        maxOutputTokens: 256,
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
     clearTimeout(id);
@@ -34,8 +46,7 @@ async function summarizeAndTagReport(reportText, options = {}) {
 
     const data = await res.json();
 
-    const rawText = (data?.candidates?.[0]?.output) || (data?.candidates?.[0]?.content) ||
-      (data?.output?.[0]?.content) || (data?.text) || JSON.stringify(data);
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify(data);
 
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -59,6 +70,8 @@ async function summarizeAndTagReport(reportText, options = {}) {
 
     return { summary, urgency };
   } catch (error) {
+        console.error('Gemini call failed:', error.message);
+
     try {
       const oneLine = reportText.split(/\r?\n/)[0].trim();
       const summary = oneLine.length > 200 ? oneLine.slice(0, 200) + '...' : oneLine || reportText;
@@ -70,3 +83,4 @@ async function summarizeAndTagReport(reportText, options = {}) {
 }
 
 module.exports = { summarizeAndTagReport };
+
