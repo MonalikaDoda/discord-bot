@@ -65,6 +65,86 @@
     }
 
     fetchLogs();
+    fetchRules();
+
+    // Rules management
+    async function fetchRules() {
+      try {
+        const res = await fetch('/api/config');
+        if (!res.ok) throw new Error('Failed to fetch rules');
+        const rules = await res.json();
+        const tbody = document.querySelector('#rulesTable tbody');
+        tbody.innerHTML = '';
+        rules.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="small">${escapeHtml(r.keyword)}</td>
+            <td class="small">${escapeHtml(r.tag)}</td>
+            <td><button data-id="${r._id}" class="delete-rule">Delete</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+        document.querySelectorAll('.delete-rule').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            if (!confirm('Delete this rule?')) return;
+            await deleteRule(id);
+          });
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function addRule() {
+      const kw = document.getElementById('newKeyword').value.trim();
+      const tag = document.getElementById('newTag').value.trim();
+      if (!kw || !tag) {
+        alert('Keyword and tag are required');
+        return;
+      }
+      try {
+        const res = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keyword: kw, tag })
+        });
+        if (!res.ok) throw new Error('Failed to create rule');
+        document.getElementById('newKeyword').value = '';
+        document.getElementById('newTag').value = '';
+        await fetchRules();
+      } catch (err) {
+        alert('Failed to add rule');
+        console.error(err);
+      }
+    }
+
+    async function deleteRule(id) {
+      try {
+        const res = await fetch(`/api/config/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+        await fetchRules();
+      } catch (err) {
+        alert('Failed to delete rule');
+        console.error(err);
+      }
+    }
   </script>
+
+  <section style="margin-top:2rem">
+    <h2>Keyword → Tag Rules</h2>
+    <form id="addRuleForm" onsubmit="event.preventDefault(); addRule();">
+      <input id="newKeyword" placeholder="keyword" required>
+      <input id="newTag" placeholder="tag (e.g. High Priority)" required>
+      <button type="submit">Add Rule</button>
+    </form>
+
+    <table id="rulesTable" style="margin-top:1rem; width:100%; border-collapse:collapse">
+      <thead>
+        <tr><th>Keyword</th><th>Tag</th><th>Action</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
 </body>
 </html>

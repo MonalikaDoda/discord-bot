@@ -67,4 +67,5 @@ router.get('/api/logs', requireAdmin, async (req, res) => {
   }
 });
 
+router.requireAdmin = requireAdmin;
 module.exports = router;

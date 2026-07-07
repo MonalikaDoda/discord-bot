@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const { verifyKeyMiddleware, InteractionType, InteractionResponseType } = require('discord-interactions');
 const Interaction = require('./models/Interaction');
 const authRoutes = require('./routes/auth');
+const configRoutes = require('./routes/config');
 const { summarizeAndTagReport } = require('./gemini');
 
 const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
@@ -40,6 +41,7 @@ app.use(session({
 }));
 
 app.use(authRoutes);
+app.use(configRoutes);
 
 async function sendSlackMessage(message) {
 	const webhookUrl = process.env.SLACK_WEBHOOK_URL;
