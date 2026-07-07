@@ -68,6 +68,14 @@
     fetchRules();
     fetchErrors();
 
+    // Refresh logs periodically every 7 seconds. Clear any existing interval to avoid duplicates.
+    if (window.__logsIntervalId) {
+      clearInterval(window.__logsIntervalId);
+    }
+    window.__logsIntervalId = setInterval(() => {
+      try { fetchLogs(); } catch (e) { console.error('Error refreshing logs:', e); }
+    }, 7000);
+
     // Rules management
     async function fetchRules() {
       try {

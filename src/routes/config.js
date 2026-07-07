@@ -14,7 +14,7 @@ router.get('/api/config', requireAdmin, async (req, res) => {
   }
 });
 
-router.post('/api/config', requireAdmin, async (req, res) => {
+router.post('/api/config', express.json(), requireAdmin, async (req, res) => {
   const { keyword, tag } = req.body || {};
   if (!keyword || !tag) return res.status(400).json({ error: 'keyword and tag are required' });
 
