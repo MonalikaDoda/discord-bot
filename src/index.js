@@ -16,6 +16,7 @@ if (!DISCORD_PUBLIC_KEY) {
 }
 
 const app = express();
+app.set('trust proxy', 1);
 
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
 if (!SESSION_SECRET) {
