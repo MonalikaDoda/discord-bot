@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const Interaction = require('../models/Interaction');
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || '';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
@@ -30,6 +31,40 @@ router.post('/login', (req, res) => {
 
 router.get('/dashboard', requireAdmin, (req, res) => {
   res.render('dashboard');
+});
+
+router.get('/logout', (req, res) => {
+  if (req.session) {
+    req.session.destroy(() => {
+      res.redirect('/login');
+    });
+  } else {
+    res.redirect('/login');
+  }
+});
+
+router.get('/api/logs', requireAdmin, async (req, res) => {
+  try {
+    const logs = await Interaction.find()
+      .sort({ timestamp: -1 })
+      .limit(100)
+      .lean()
+      .exec();
+
+    return res.json(logs.map(log => ({
+      interactionId: log.interactionId,
+      commandName: log.commandName,
+      userId: log.userId,
+      inputText: log.inputText,
+      aiTag: log.aiTag || null,
+      aiSummary: log.aiSummary || null,
+      timestamp: log.timestamp,
+      actionTaken: 'Logged + mirrored to Slack'
+    })));
+  } catch (err) {
+    console.error('Failed to read logs:', err.message || err);
+    return res.status(500).json({ error: 'Failed to read logs' });
+  }
 });
 
 module.exports = router;

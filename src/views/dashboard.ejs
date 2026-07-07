@@ -4,9 +4,67 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard</title>
+  <style>
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f4f4f4; }
+    .small { font-size: 0.9em; color: #555; }
+  </style>
 </head>
 <body>
   <h1>Admin Dashboard</h1>
-  <p>You are signed in as an admin.</p>
+  <p>You are signed in as an admin. <a href="/logout">Sign out</a></p>
+
+  <div id="loading">Loading logs...</div>
+  <table id="logsTable" style="display:none">
+    <thead>
+      <tr>
+        <th>Command</th>
+        <th>User ID</th>
+        <th>Input Text</th>
+        <th>AI Tag / Summary</th>
+        <th>Timestamp</th>
+        <th>Action Taken</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    async function fetchLogs() {
+      try {
+        const res = await fetch('/api/logs');
+        if (!res.ok) throw new Error('Failed to fetch logs');
+        const logs = await res.json();
+        const tbody = document.querySelector('#logsTable tbody');
+        tbody.innerHTML = '';
+        logs.forEach(l => {
+          const tr = document.createElement('tr');
+          const aiCell = (l.aiTag || l.aiSummary) ? `${l.aiTag ? `<strong>${l.aiTag}</strong>` : ''} ${l.aiSummary ? ` — ${l.aiSummary}` : ''}` : '';
+          tr.innerHTML = `
+            <td class="small">${escapeHtml(l.commandName)}</td>
+            <td class="small">${escapeHtml(l.userId)}</td>
+            <td>${escapeHtml(l.inputText || '')}</td>
+            <td>${aiCell}</td>
+            <td class="small">${new Date(l.timestamp).toLocaleString()}</td>
+            <td class="small">${escapeHtml(l.actionTaken || 'Logged')}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('logsTable').style.display = '';
+      } catch (err) {
+        document.getElementById('loading').textContent = 'Failed to load logs.';
+        console.error(err);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"]+/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;', '"':'&quot;'}[s]));
+    }
+
+    fetchLogs();
+  </script>
 </body>
 </html>
