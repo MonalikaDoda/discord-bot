@@ -6,6 +6,7 @@ const session = require('express-session');
 const mongoose = require('mongoose');
 const { verifyKeyMiddleware, InteractionType, InteractionResponseType } = require('discord-interactions');
 const Interaction = require('./models/Interaction');
+const CommandConfig = require('./models/CommandConfig');
 const authRoutes = require('./routes/auth');
 const configRoutes = require('./routes/config');
 const { summarizeAndTagReport } = require('./gemini');
@@ -28,6 +29,7 @@ if (!SESSION_SECRET) {
 app.set('view engine', 'ejs');
 app.set('views', 'src/views');
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 const isProduction = process.env.NODE_ENV === 'production';
 app.use(session({
   secret: SESSION_SECRET,
@@ -101,13 +103,21 @@ app.post('/interactions', verifyKeyMiddleware(DISCORD_PUBLIC_KEY), async (req, r
 			let aiTag = null;
 			let aiSummary = null;
 			if (name === 'report') {
+				let geminiResult = { summary: null, urgency: null };
 				try {
-					const result = await summarizeAndTagReport(inputText || '');
-					aiTag = result.urgency || null;
-					aiSummary = result.summary || null;
+					geminiResult = await summarizeAndTagReport(inputText || '');
+					aiSummary = geminiResult.summary || null;
 				} catch (e) {
-					aiTag = null;
 					aiSummary = null;
+				}
+
+				try {
+					const configs = await CommandConfig.find().lean().exec();
+					const normalizedText = inputText.toLowerCase();
+					const matched = configs.find(config => normalizedText.includes(config.keyword.toLowerCase()));
+					aiTag = matched ? matched.tag : (geminiResult.urgency || null);
+				} catch (e) {
+					aiTag = geminiResult.urgency || null;
 				}
 			}
 
